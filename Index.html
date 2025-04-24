@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tracking Lookup</title>
+</head>
+<style>
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f2f4f8;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+.container {
+  background: white;
+  margin-top: 60px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  border-radius: 10px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.subtext {
+  margin-bottom: 20px;
+  color: #777;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px;
+  width: 100%;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.result {
+  margin-top: 25px;
+  font-size: 16px;
+  color: #444;
+  text-align: left;
+  transition: opacity 0.3s;
+}
+
+.result a {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.error {
+  color: red;
+}
+
+</style>
+<body>
+  <div class="container">
+    <h1>📦 Track Your Parcel</h1>
+    <p class="subtext">Enter your tracking number below</p>
+    <input type="text" id="trackingNumber" placeholder="e.g. UF042649729SE" autofocus>
+    <button onclick="searchTracking()">🔍 Search</button>
+    <div class="result" id="result"></div>
+  </div>
+</body>
+  <script>
+const mainSheetData = [
+  { prefix: "UF", suffix: "SE", links: ["https://postnord.se/en/","https://tracking.directlink.com/?locale=en"], courier: "PostNord Local / PostNord International" },
+  { prefix: "LE", suffix: "SE", links: ["https://postnord.se/en/","https://tracking.directlink.com/?locale=en"], courier: "PostNord Local / PostNord International" },
+  { prefix: "CD", suffix: "SE", links: ["https://postnord.se/en/","https://tracking.directlink.com/?locale=en"], courier: "PostNord Local / PostNord International" },
+  { prefix: "UX", suffix: "FR", links: ["https://track24.net","https://www.post.ch/en"], courier: "Track24 / Swiss Post" },
+  { prefix: "UX", suffix: "CH", links: ["https://track24.net","https://www.post.ch/en"], courier: "Track24 / Swiss Post" },
+  { prefix: "LJ", suffix: "AT", links: ["https://post.at"], courier: "Post AG" },
+  { prefix: "LT", suffix: "N1", links: ["https://track.landmarkglobal.com/","https://bpost.be"], courier: "Landmark / bPost" },
+  { prefix: "AD", suffix: "", links: ["https://fastway.com"], courier: "Fastway" },
+  { prefix: "PQ", suffix: "B", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PQ", suffix: "C", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PQ", suffix: "E", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PQ", suffix: "J", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PQ", suffix: "T", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PH", suffix: "G", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PH", suffix: "L", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PH", suffix: "N", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PH", suffix: "Q", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "PH", suffix: "T", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "H00IEA", suffix: "", links: ["https://www.evri.com/track-a-parcel","https://web.parcelhub.net/Tracking"], courier: "Evri" },
+  { prefix: "L1", suffix: "", links: ["https://web.parcelhub.net/Tracking"], courier: "Royal Mail" },
+  { prefix: "PH", suffix: "Y", links: ["https://correos.es"], courier: "Correos" },
+  { prefix: "UQ", suffix: "DE", links: ["https://www.dhl.com/us-en/home/tracking/tracking-ecommerce.html","https://www.chinapostaltracking.com/"], courier: "DHL / ChinaPost" },
+  { prefix: "LK", suffix: "SK", links: ["https://17track.net/en"], courier: "17TRACK" },
+  { prefix: "UT", suffix: "NL", links: ["https://postnl.post"], courier: "PostNL" }
+];
+
+window.onload = () => {
+  const input = document.getElementById("trackingNumber");
+  input.focus();
+
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      searchTracking();
+    }
+  });
+
+  input.addEventListener("input", () => {
+    document.getElementById("result").innerHTML = "";
+  });
+};
+
+function searchTracking() {
+  const input = document.getElementById("trackingNumber").value.trim().toUpperCase();
+  const resultElement = document.getElementById("result");
+  resultElement.innerHTML = "🔄 Searching...";
+
+  setTimeout(() => {
+    let match = mainSheetData.find(item => {
+      const prefixMatch = input.startsWith(item.prefix);
+      const suffixMatch = item.suffix === "" || input.endsWith(item.suffix);
+      return prefixMatch && suffixMatch;
+    });
+
+// Check for WMG tracking numbers
+if (input.startsWith("WMG")) {
+  resultElement.innerHTML = `
+    ✅ <strong>DAI Delivery</strong><br>
+    <a href="https://daiglobaltrack.com/tracking.aspx?custtracknbr=${input}" target="_blank">
+      Track your parcel
+    </a>
+  `;
+  return;
+}
+
+
+
+if (input.startsWith("924199")) {
+  resultElement.innerHTML = `
+    ✅ <strong>USPS</strong><br>
+    <a href="https://tools.usps.com/go/TrackConfirmAction?tLabels=${input}" target="_blank">
+      Track your parcel
+    </a>
+  `;
+  return;
+}
+
+
+    // Special case: DPD numeric prefix/suffix check
+    const prefix = input.slice(0, 2);
+    const suffix = input.slice(-2);
+
+    if (!isNaN(prefix) && !isNaN(suffix)) {
+      resultElement.innerHTML = `
+        ✅ <strong>DPD Group</strong><br>
+        <a href="https://www.dpdgroup.com/lv/mydpd/my-parcels/incoming?parcelNumber=${input}" target="_blank">
+          Track your parcel
+        </a>
+      `;
+      return;
+    }
+
+// MHI Check
+if (input.startsWith("MHI-")) {
+  resultElement.innerHTML = `
+    ✅ <strong>TrackMail</strong><br>
+    <a href="https://www.trackmail.co.uk/" target="_blank">
+      Track your parcel
+    </a>
+  `;
+  return;
+}
+
+    // Fastway format check (2 letters prefix, 2 digits suffix)
+    if (/^[A-Z]{2}/.test(prefix) && /^[0-9]{2}$/.test(suffix)) {
+      resultElement.innerHTML = `
+        ✅ <strong>Fastway</strong><br>
+        <a href="https://www.fastway.ie/courier-services/track-your-parcel/" target="_blank">
+          Track your parcel
+        </a>
+      `;
+      return;
+    }
+
+    // Match found in mainSheetData
+    if (match) {
+      const linksHTML = match.links.length
+        ? match.links.map(link => `<a href="${link}" target="_blank">${link}</a>`).join("<br>")
+        : `<em>No tracking link available.</em>`;
+      resultElement.innerHTML = `
+        ✅ <strong>${match.courier}</strong><br>
+        ${linksHTML}
+      `;
+    } else {
+      resultElement.innerHTML = `<span class="error">❌ No match found. Please check your tracking number.</span>`;
+    }
+  }, 300);
+}
+</script>
+</html>
